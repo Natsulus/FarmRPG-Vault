@@ -1,0 +1,214 @@
+<html>
+	<head>
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+		<style>
+			* {
+				font-family:-apple-system, SF UI Text, Helvetica Neue, Helvetica, Arial, sans-serif;
+				font-size: 14px;
+			}
+			body {
+				background-color: #000;
+			}
+			.row {
+				margin-bottom: 15px;
+				display: flex;
+				-webkit-box-pack: justify;
+				justify-content: space-between;
+				flex-wrap: wrap;
+				-webkit-box-align: start;
+				align-items: flex-start;
+			}
+			.row .col-25 {
+				width: calc((100% - 15px*3) / 4);
+				box-sizing: border-box;
+				text-align: center;
+				color: #eee;
+				padding: 4px;
+				font-size: 14px;
+			}
+			.digit-unsolved {
+				border: 2px solid gray;
+				background-color: #666
+			}
+			.digit-found {
+				border: 2px solid #CCCC00;
+				background-color: #999900
+			}
+			.digit-solved {
+				border: 2px solid #33C7FF;
+				background-color: #0E7CA6
+			}
+			.button {
+				border: 1px solid #007aff;
+				color: #007aff;
+				text-decoration: none;
+				text-align: center;
+				display: block;
+				border-radius: 5px;
+				line-height: 27px;
+				box-sizing: border-box;
+				-webkit-appearance: none;
+				-moz-appearance: none;
+				-ms-appearance: none;
+				appearance: none;
+				background: none;
+				background-color: rgba(0, 0, 0, 0);
+				padding: 0 10px;
+				margin: 0;
+				height: 29px;
+				white-space: nowrap;
+				position: relative;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				font-family: inherit;
+				cursor: pointer;
+				outline: 0;
+			}
+			.button.btngreen {
+				background-color: #003300;
+				border: 1px solid #006600 !important;
+				border-radius: 0px !important;
+				color: white;
+			}
+			.button.btnred {
+				background-color: salmon;
+				border: 0px solid red !important;
+				border-radius: 0px !important;
+				color: black;
+			}
+		</style>
+		<script>		
+			let code = [Math.floor(Math.random() * 10), Math.floor(Math.random() * 10), Math.floor(Math.random() * 10), Math.floor(Math.random() * 10)];
+			let currentAttempt = 1;
+			let maxAttempt = 5;
+		</script>
+	</head>
+	<body>
+		<div class="card">
+			<div class="card-content">
+				<div class="card-content-inner" style="padding-bottom:5px">
+				</div>
+			</div>
+		</div>
+		<p style="margin:0">
+			<a id="guess-submit" class="button btngreen vcbtn">Submit Code</a>
+			<a id="vault-reset" class="button btnred">New Vault</a>
+		</p>
+		<script>			
+			let cardContentInner = $(".card-content-inner");
+			let currentInputRow;
+			
+			function verifyInputGuess() {
+				let currentGuess = [];
+				let solvedCount = 0;
+				let invalidGuess = false;
+				currentInputRow.children().each((curRow, cur) => {
+					if (cur.value == "")
+						invalidGuess = true;
+					currentGuess.push({
+						value: Number(cur.value),
+						element: $(cur),
+						status: "unsolved"
+					});
+				});
+				if (invalidGuess)
+					return;
+				currentGuess.forEach((guess, idx) => {
+					for (let i = 0; i < currentGuess.length; i++) {
+						if (currentGuess[i].status == "solved")
+							continue;
+						if (guess.value == code[i]) {
+							if (idx == i) {
+								guess.status = "solved";
+								solvedCount++;
+								break;
+							}
+							guess.status = "found"
+						}
+					}
+					guess.element.removeClass("digit-unsolved");
+					guess.element.addClass("digit-" + guess.status);
+					guess.element.changeElementType("div");
+					guess.element.content = guess.value;
+				});
+				currentInputRow.removeClass("input-row");
+				currentInputRow.attr("id", "guess-row-" + currentAttempt++);
+				if (currentAttempt > maxAttempt || solvedCount == 4)
+					$("#guess-submit").hide();
+				else
+					createInputRow();
+			}
+			
+			function resetVault() {
+				cardContentInner.empty();
+				createInputRow();
+				
+				$("#guess-submit").show();
+				
+				code = [Math.floor(Math.random() * 10), Math.floor(Math.random() * 10), Math.floor(Math.random() * 10), Math.floor(Math.random() * 10)];
+				currentAttempt = 1;
+			}
+			
+			function createInputRow() {
+				currentInputRow = $("<div>");
+				currentInputRow.addClass("row input-row");
+				
+				for (let i = 0; i < 4; i++) {
+					let newInput = $("<input>");
+					newInput.addClass("col-25 digit-unsolved");
+					newInput.attr("type", "text");
+					newInput.attr("maxlength", "1");
+					currentInputRow.append(newInput);
+				}
+				cardContentInner.append(currentInputRow);
+				
+				
+				$("input").bind("input", function() {
+					var $this = $(this);
+					setTimeout(function() {
+						if ( $this.val().length >= parseInt($this.attr("maxlength"),10) )
+							$this.next("input").focus();
+					},0);
+				});
+				
+				$("input")[0].focus();
+				$("input").keyup(function(event){
+					if(event.which == 13){
+						$("#guess-submit").click();
+					}
+					event.preventDefault();
+				});
+			}
+			
+			function init() {				
+				(function($) {
+					$.fn.changeElementType = function(newType) {
+						var attrs = {};
+
+						$.each(this[0].attributes, function(idx, attr) {
+							attrs[attr.nodeName] = attr.nodeValue;
+						});
+
+						this.replaceWith(function() {
+							return $("<" + newType + "/>", attrs).append($(this)[0].value);
+						});
+					};
+				})(jQuery);
+			
+				$("#guess-submit").click(verifyInputGuess);
+				$("#vault-reset").click(resetVault);
+				
+				createInputRow();
+			}
+			
+			function defer(method) {
+				if (window.jQuery) {
+					method();
+				} else {
+					setTimeout(function() { defer(method) }, 50);
+				}
+			}
+			defer(init);
+		</script>
+	</body>
+</html>
